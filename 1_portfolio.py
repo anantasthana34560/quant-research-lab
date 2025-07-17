@@ -15,14 +15,14 @@ import copy
 
 def CAGR(input_df):
     df = input_df.copy()
-    df['Cumulative Return'] = (1 + df['mon_ret']).cumprod()
+    df['Cumulative Return'] = (1 + df['Return']).cumprod()
     n = len(df)/12 # 12-month CAGR
     cagr = (df['Cumulative Return'].iloc[-1]) ** (1 / n) - 1
     return cagr.item()
 
 def volatility(input_df):
     df = input_df.copy()
-    vol = df['mon_ret'].std() * (12 ** 0.5)  # Annualized volatility
+    vol = df['Return'].std() * (12 ** 0.5)  # Annualized volatility
     return vol
 
 def sharpe(input_df, risk_free_rate=0.025):
@@ -32,7 +32,7 @@ def sharpe(input_df, risk_free_rate=0.025):
 
 def max_dd(input_df):
     df = input_df.copy()
-    df['Cumulative Return'] = (1 + df['mon_ret']).cumprod()
+    df['Cumulative Return'] = (1 + df[''Return']).cumprod()
     df['Cumulative Roll Max'] = df['Cumulative Return'].cummax()
     df['Drawdown'] = df['Cumulative Roll Max'] - df['Cumulative Return']
     df['Drawdown Percentage'] = df['Drawdown'] / df['Cumulative Roll Max']
@@ -51,7 +51,7 @@ def get_data(tickers, start=start_date, end=end_date):
     ohlc_mon = {}
     for ticker in tickers:
         df = yf.download(ticker, start=start, end=end, auto_adjust=False, interval='1mo')
-        df['mon_ret'] = df['Adj Close'].pct_change()
+        df[''Return'] = df['Adj Close'].pct_change()
         df.dropna(inplace=True)
         ohlc_mon[ticker] = df
     return ohlc_mon
@@ -60,7 +60,7 @@ tickers = ['NVDA', 'MSFT', 'AAPL', 'AMZN', 'JPM', 'WMT', 'V', 'JNJ', 'HD', 'PG',
 ohlc_mon = get_data(tickers)
 # print(ohlc_mon)
 DJI = yf.download('^DJI', start=start_date, end=end_date, auto_adjust=False, interval='1mo')
-DJI['mon_ret'] = DJI['Adj Close'].pct_change()
+DJI['Return'] = DJI['Adj Close'].pct_change()
 DJI.dropna(inplace=True)
 print(f"DJI CAGR: {CAGR(DJI):.4f}")
 print(f"DJI Volatility: {volatility(DJI):.4f}")
@@ -71,7 +71,7 @@ print(f"DJI Max Drawdown: {max_dd(DJI):.4f}")
 ohlc_dict = copy.deepcopy(ohlc_mon)
 return_df = pd.DataFrame()
 for ticker in tickers:
-    return_df[ticker] = ohlc_dict[ticker]['mon_ret']
+    return_df[ticker] = ohlc_dict[ticker]['Return']
 
 m = 6 # Number of stocks in portfolio
 x = 3 # Number of stocks to replace in portfolio each month
@@ -90,7 +90,7 @@ def pfolio(input_df, m, x):
         portfolio.extend(new_picks)
         monthly_ret.append(df.iloc[i][portfolio].mean()) # Average returns of stocks in portfolio, assuming all are weighted equally 
         print(portfolio)
-    monthly_ret_df = pd.DataFrame(monthly_ret, columns=['mon_ret'])
+    monthly_ret_df = pd.DataFrame(monthly_ret, columns=['Return'])
     # Set the index to match the input DataFrame's index for correct date alignment
     monthly_ret_df.index = df.index[:len(monthly_ret_df)]
     return monthly_ret_df
@@ -126,7 +126,7 @@ def pfolio_with_shorting(input_df, m, x, y):
         if i > 0:
             monthly_ret.append(long_ret + short_ret)
         print(f"Long: {portfolio}, Short: {short_portfolio}")
-    monthly_ret_df = pd.DataFrame(monthly_ret, columns=['mon_ret'])
+    monthly_ret_df = pd.DataFrame(monthly_ret, columns=['Return'])
     monthly_ret_df.index = df.index[:len(monthly_ret_df)] # Set the index so the dates match
     return monthly_ret_df
 
@@ -139,9 +139,9 @@ print(f"Portfolio_with_short Sharpe Ratio: {sharpe(pfolio_with_short_return):.4f
 print(f"Portfolio_with_short Max Drawdown: {max_dd(pfolio_with_short_return):.4f}")
 
 plt.figure(figsize=(14, 7))
-plt.plot((1 + pfolio_return['mon_ret']).cumprod(), label='Portfolio Returns', color='blue')
-plt.plot((1 + pfolio_with_short_return['mon_ret']).cumprod(), label='Portfolio_with_short Returns', color='red')
-plt.plot((1 + DJI['mon_ret']).cumprod(), label='DJI Returns', color='orange')
+plt.plot((1 + pfolio_return['Return']).cumprod(), label='Portfolio Returns', color='blue')
+plt.plot((1 + pfolio_with_short_return['Return']).cumprod(), label='Portfolio_with_short Returns', color='red')
+plt.plot((1 + DJI['Return']).cumprod(), label='DJI Returns', color='orange')
 plt.title('Portfolio Returns vs DJI Returns')
 plt.xlabel('Months')
 plt.ylabel(f'Cumulative Returns (m={m}, x={x}, y={y}) from {start_date} to {end_date}')
